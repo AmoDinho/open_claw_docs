@@ -23,8 +23,16 @@ export const STRATEGY_CONFIG = {
       "1day": 4,
     } satisfies Record<Timeframe, number>,
   },
+  imbalance: {
+    minimumFvgAtrMultiple: 0.08,
+    poiTouchAtrBuffer: 0.05,
+  },
   bias: {
     bullishRangeCeiling: 0.6,
     bearishRangeFloor: 0.4,
+  },
+  execution: {
+    minimumRiskReward: 3,
+    minimumSignalConfidence: 60,
   },
 };

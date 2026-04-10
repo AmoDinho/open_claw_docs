@@ -2,22 +2,121 @@ import "dotenv/config";
 import { XAUUSD_CONFIG } from "./config/instruments.js";
 import { STRATEGY_CONFIG } from "./config/strategy.js";
 import { fetchCandles, fetchQuote } from "./data/twelvedata.js";
-import type {
-  PhaseOneAnalysisResult,
-  Timeframe,
-  TimeframeAnalysis,
-} from "./data/types.js";
+import type { AnalysisResult, Timeframe, TimeframeAnalysis } from "./data/types.js";
 import { computeAtr } from "./indicators/atr.js";
+import { findFairValueGaps } from "./indicators/fvg.js";
 import { findSwingPoints } from "./indicators/swings.js";
-import { formatPhaseOneReport } from "./report/format.js";
+import { formatAnalysisReport } from "./report/format.js";
 import { assessDailyBias } from "./strategy/bias.js";
-import { collectStructureBreaks, buildStructureState } from "./structure/bos.js";
+import { validateSession } from "./strategy/session.js";
+import { generateSignal } from "./strategy/signal.js";
+import { buildStructureState, collectStructureBreaks } from "./structure/bos.js";
 import { detectLatestChoch } from "./structure/choch.js";
 import { buildLiquidityMap } from "./structure/liquidity.js";
+import { findPointOfInterest } from "./structure/poi.js";
 import { deriveDealingRange } from "./structure/range.js";
 
 function getSymbolFromCli(): string {
   return process.argv[2] ?? XAUUSD_CONFIG.symbol;
+}
+
+function detectLatestSweep(params: {
+  currentPrice: number;
+  candles: Awaited<ReturnType<typeof fetchCandles>>;
+  analysis: Omit<TimeframeAnalysis, "latestSweep">;
+}): TimeframeAnalysis["latestSweep"] {
+  const { currentPrice, candles, analysis } = params;
+  const latestCandle = candles.at(-1);
+
+  if (!latestCandle) {
+    return undefined;
+  }
+
+  for (const level of analysis.liquidity.externalBelow) {
+    if (latestCandle.low < level && latestCandle.close > level) {
+      return {
+        direction: "BULLISH",
+        liquidityType: "EXTERNAL",
+        level,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+  }
+
+  for (const level of analysis.liquidity.internalBelow) {
+    if (latestCandle.low < level && latestCandle.close > level) {
+      return {
+        direction: "BULLISH",
+        liquidityType: "INTERNAL",
+        level,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+  }
+
+  for (const level of analysis.liquidity.externalAbove) {
+    if (latestCandle.high > level && latestCandle.close < level) {
+      return {
+        direction: "BEARISH",
+        liquidityType: "EXTERNAL",
+        level,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+  }
+
+  for (const level of analysis.liquidity.internalAbove) {
+    if (latestCandle.high > level && latestCandle.close < level) {
+      return {
+        direction: "BEARISH",
+        liquidityType: "INTERNAL",
+        level,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+  }
+
+  if (analysis.pointOfInterest) {
+    if (
+      analysis.pointOfInterest.type === "DEMAND" &&
+      latestCandle.low <= analysis.pointOfInterest.low &&
+      currentPrice >= analysis.pointOfInterest.low
+    ) {
+      return {
+        direction: "BULLISH",
+        liquidityType: "INTERNAL",
+        level: analysis.pointOfInterest.low,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+
+    if (
+      analysis.pointOfInterest.type === "SUPPLY" &&
+      latestCandle.high >= analysis.pointOfInterest.high &&
+      currentPrice <= analysis.pointOfInterest.high
+    ) {
+      return {
+        direction: "BEARISH",
+        liquidityType: "INTERNAL",
+        level: analysis.pointOfInterest.high,
+        candleIndex: candles.length - 1,
+        candleDatetime: latestCandle.datetime,
+        rejectionClose: latestCandle.close,
+      };
+    }
+  }
+
+  return undefined;
 }
 
 function analyzeTimeframe(
@@ -29,10 +128,13 @@ function analyzeTimeframe(
   const swingStrength = STRATEGY_CONFIG.structure.swingStrengthByTimeframe[timeframe];
   const swings = findSwingPoints(candles, swingStrength);
   const minimumDisplacement = (atr ?? 0) * STRATEGY_CONFIG.structure.bosDisplacementAtrMultiple;
+  const minimumGapSize = (atr ?? 0) * STRATEGY_CONFIG.imbalance.minimumFvgAtrMultiple;
   const breaks = collectStructureBreaks(candles, swings, minimumDisplacement);
   const structure = buildStructureState(timeframe, swings, breaks);
   structure.latestChoch = detectLatestChoch(breaks);
 
+  const fairValueGaps = findFairValueGaps(candles, minimumGapSize);
+  const activeFvgs = fairValueGaps.filter((gap) => !gap.mitigated);
   const dealingRange = deriveDealingRange(candles, swings, structure.latestBos, currentPrice);
   const liquidity = buildLiquidityMap({
     candles,
@@ -41,17 +143,37 @@ function analyzeTimeframe(
     atr,
     dealingRange,
   });
+  const pointOfInterest = findPointOfInterest({
+    timeframe,
+    candles,
+    latestBos: structure.latestBos,
+    activeFvgs,
+  });
 
-  return {
+  const analysisWithoutSweep = {
     timeframe,
     atr,
     structure,
     dealingRange,
     liquidity,
+    fairValueGaps,
+    activeFvgs,
+    pointOfInterest,
+  };
+
+  const latestSweep = detectLatestSweep({
+    currentPrice,
+    candles,
+    analysis: analysisWithoutSweep,
+  });
+
+  return {
+    ...analysisWithoutSweep,
+    latestSweep,
   };
 }
 
-async function runPhaseOneAnalysis(symbol: string): Promise<PhaseOneAnalysisResult> {
+async function runAnalysis(symbol: string): Promise<AnalysisResult> {
   const timeframes = XAUUSD_CONFIG.timeframes;
   const [currentPrice, ...candlesByTimeframe] = await Promise.all([
     fetchQuote(symbol),
@@ -66,26 +188,28 @@ async function runPhaseOneAnalysis(symbol: string): Promise<PhaseOneAnalysisResu
   ) as Record<Timeframe, TimeframeAnalysis>;
 
   const biasAssessment = assessDailyBias(timeframeAnalyses["1day"], timeframeAnalyses["4h"]);
+  const session = validateSession(new Date());
 
-  return {
+  return generateSignal({
     instrument: symbol,
     timestamp: new Date().toISOString(),
     currentPrice,
     dailyBias: biasAssessment.bias,
-    timeframeAnalyses,
+    timeframeAnalyses: timeframeAnalyses as Record<"1day" | "4h" | "1h" | "15min", TimeframeAnalysis>,
+    session,
     reasons: biasAssessment.reasons,
-  };
+  });
 }
 
 async function main(): Promise<void> {
   const symbol = getSymbolFromCli();
-  const result = await runPhaseOneAnalysis(symbol);
-  console.log(formatPhaseOneReport(result));
+  const result = await runAnalysis(symbol);
+  console.log(formatAnalysisReport(result));
   console.log("");
   console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`Phase 1 analysis failed: ${message}`);
+  console.error(`Analysis failed: ${message}`);
 });
