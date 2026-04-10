@@ -1,5 +1,9 @@
 import "dotenv/config";
-import { XAUUSD_CONFIG } from "./config/instruments.js";
+import {
+  DEFAULT_TIMEFRAMES,
+  XAUUSD_CONFIG,
+  findInstrumentConfig,
+} from "./config/instruments.js";
 import { STRATEGY_CONFIG } from "./config/strategy.js";
 import { fetchCandles, fetchQuote } from "./data/twelvedata.js";
 import type { AnalysisResult, Timeframe, TimeframeAnalysis } from "./data/types.js";
@@ -18,12 +22,64 @@ import { buildLiquidityMap } from "./structure/liquidity.js";
 import { findPointOfInterest } from "./structure/poi.js";
 import { deriveDealingRange } from "./structure/range.js";
 
-function getSymbolFromCli(): string {
-  return process.argv[2] ?? XAUUSD_CONFIG.symbol;
+interface CliOptions {
+  instrumentConfig: {
+    symbol: string;
+    name: string;
+    timeframes: Timeframe[];
+  };
+  printJson: boolean;
+}
+
+function getArgValue(flag: string): string | undefined {
+  const index = process.argv.indexOf(flag);
+
+  if (index === -1) {
+    return undefined;
+  }
+
+  return process.argv[index + 1];
 }
 
 function shouldPrintJson(): boolean {
   return process.argv.includes("--json");
+}
+
+function getCliOptions(): CliOptions {
+  const requestedInstrument = getArgValue("--instrument");
+  const requestedSymbol = getArgValue("--symbol");
+  const requestedName = getArgValue("--name");
+
+  if (requestedSymbol) {
+    return {
+      instrumentConfig: {
+        symbol: requestedSymbol,
+        name: requestedName ?? requestedSymbol,
+        timeframes: DEFAULT_TIMEFRAMES,
+      },
+      printJson: shouldPrintJson(),
+    };
+  }
+
+  if (requestedInstrument) {
+    const instrument = findInstrumentConfig(requestedInstrument);
+
+    if (!instrument) {
+      throw new Error(
+        `Unknown instrument "${requestedInstrument}". Use --instrument gold, --instrument nasdaq100, or pass --symbol directly.`,
+      );
+    }
+
+    return {
+      instrumentConfig: instrument,
+      printJson: shouldPrintJson(),
+    };
+  }
+
+  return {
+    instrumentConfig: XAUUSD_CONFIG,
+    printJson: shouldPrintJson(),
+  };
 }
 
 function detectLatestSweep(params: {
@@ -179,8 +235,7 @@ function analyzeTimeframe(
   };
 }
 
-async function runAnalysis(symbol: string): Promise<AnalysisResult> {
-  const timeframes = XAUUSD_CONFIG.timeframes;
+async function runAnalysis(symbol: string, timeframes: Timeframe[]): Promise<AnalysisResult> {
   const [currentPrice, ...candlesByTimeframe] = await Promise.all([
     fetchQuote(symbol),
     ...timeframes.map((timeframe) => fetchCandles(symbol, timeframe)),
@@ -208,8 +263,12 @@ async function runAnalysis(symbol: string): Promise<AnalysisResult> {
 }
 
 async function main(): Promise<void> {
-  const symbol = getSymbolFromCli();
-  const result = await runAnalysis(symbol);
+  const options = getCliOptions();
+  const result = await runAnalysis(
+    options.instrumentConfig.symbol,
+    options.instrumentConfig.timeframes,
+  );
+  result.instrument = options.instrumentConfig.name;
   const artifacts = await writeAnalysisArtifacts(result);
 
   console.log(formatOpenClawReport(result));
@@ -219,7 +278,7 @@ async function main(): Promise<void> {
   console.log(`- JSONL log: ${artifacts.jsonlPath}`);
   console.log(`- CSV log: ${artifacts.csvPath}`);
 
-  if (shouldPrintJson()) {
+  if (options.printJson) {
     console.log("");
     console.log(formatAnalysisReport(result));
     console.log("");
