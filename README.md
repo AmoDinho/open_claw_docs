@@ -150,19 +150,19 @@ npm run typecheck
 Example for Gold:
 
 ```bash
-openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument gold --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to 1972775852
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument gold --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
 Example for NASDAQ 100:
 
 ```bash
-openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument nasdaq100 --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to 1972775852
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument nasdaq100 --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
 If you want full control over the symbol:
 
 ```bash
-openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --symbol NDX --name 'NASDAQ 100' --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to 1972775852
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --symbol NDX --name 'NASDAQ 100' --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
 ## Project Structure
