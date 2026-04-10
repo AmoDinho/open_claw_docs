@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { XAUUSD_CONFIG } from "./config/instruments.js";
 import { STRATEGY_CONFIG } from "./config/strategy.js";
 import { fetchCandles, fetchQuote } from "./data/twelvedata.js";
