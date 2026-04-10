@@ -177,3 +177,43 @@ export interface AnalysisResult {
   tradePlan?: TradePlan;
   reasons: string[];
 }
+
+export interface BacktestLogRecord {
+  logVersion: number;
+  timestamp: string;
+  instrument: string;
+  signal: TradeSignal;
+  bias: Direction;
+  confidence: number;
+  currentPrice: number;
+  sessionValid: boolean;
+  activeSessions: string;
+  dailyStructure: Direction;
+  h4Structure: Direction;
+  h1Structure: Direction;
+  m15Structure: Direction;
+  dailyRangePosition: number | null;
+  h4RangePosition: number | null;
+  h1RangePosition: number | null;
+  m15RangePosition: number | null;
+  h4PoiType: PointOfInterest["type"] | "";
+  h4PoiLow: number | null;
+  h4PoiHigh: number | null;
+  h4PoiValid: boolean;
+  h1PoiType: PointOfInterest["type"] | "";
+  h1PoiLow: number | null;
+  h1PoiHigh: number | null;
+  h1PoiValid: boolean;
+  m15SweepDirection: SweepEvent["direction"] | "";
+  m15SweepType: SweepEvent["liquidityType"] | "";
+  m15SweepLevel: number | null;
+  chochConfirmed: boolean;
+  bosConfirmed: boolean;
+  fvgPresent: boolean;
+  entry: number | null;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  partialAt: number | null;
+  riskReward: number | null;
+  reasons: string;
+}

@@ -6,7 +6,9 @@ import type { AnalysisResult, Timeframe, TimeframeAnalysis } from "./data/types.
 import { computeAtr } from "./indicators/atr.js";
 import { findFairValueGaps } from "./indicators/fvg.js";
 import { findSwingPoints } from "./indicators/swings.js";
+import { writeAnalysisArtifacts } from "./logging/backtest.js";
 import { formatAnalysisReport } from "./report/format.js";
+import { formatOpenClawReport } from "./report/openclaw.js";
 import { assessDailyBias } from "./strategy/bias.js";
 import { validateSession } from "./strategy/session.js";
 import { generateSignal } from "./strategy/signal.js";
@@ -18,6 +20,10 @@ import { deriveDealingRange } from "./structure/range.js";
 
 function getSymbolFromCli(): string {
   return process.argv[2] ?? XAUUSD_CONFIG.symbol;
+}
+
+function shouldPrintJson(): boolean {
+  return process.argv.includes("--json");
 }
 
 function detectLatestSweep(params: {
@@ -204,9 +210,21 @@ async function runAnalysis(symbol: string): Promise<AnalysisResult> {
 async function main(): Promise<void> {
   const symbol = getSymbolFromCli();
   const result = await runAnalysis(symbol);
-  console.log(formatAnalysisReport(result));
+  const artifacts = await writeAnalysisArtifacts(result);
+
+  console.log(formatOpenClawReport(result));
   console.log("");
-  console.log(JSON.stringify(result, null, 2));
+  console.log("Artifacts:");
+  console.log(`- Latest snapshot: ${artifacts.latestJsonPath}`);
+  console.log(`- JSONL log: ${artifacts.jsonlPath}`);
+  console.log(`- CSV log: ${artifacts.csvPath}`);
+
+  if (shouldPrintJson()) {
+    console.log("");
+    console.log(formatAnalysisReport(result));
+    console.log("");
+    console.log(JSON.stringify(result, null, 2));
+  }
 }
 
 main().catch((error: unknown) => {
