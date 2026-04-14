@@ -18,17 +18,53 @@ export const XAUUSD_CONFIG: InstrumentConfig = {
   timeframes: DEFAULT_TIMEFRAMES,
 };
 
-export const NASDAQ100_CONFIG: InstrumentConfig = {
-  id: 'nasdaq100',
-  symbol: process.env.NASDAQ100_SYMBOL ?? 'NDX',
-  name: 'NASDAQ 100',
-  aliases: ['nasdaq', 'nasdaq100', 'ndx', 'us100', 'nas100'],
+export const USDJPY_CONFIG: InstrumentConfig = {
+  id: 'usdjpy',
+  symbol: 'USD/JPY',
+  name: 'USDJPY',
+  aliases: ['usdjpy', 'usd/jpy'],
+  timeframes: DEFAULT_TIMEFRAMES,
+};
+
+export const EURJPY_CONFIG: InstrumentConfig = {
+  id: 'eurjpy',
+  symbol: 'EUR/JPY',
+  name: 'EURJPY',
+  aliases: ['eurjpy', 'eur/jpy'],
+  timeframes: DEFAULT_TIMEFRAMES,
+};
+
+export const EURGBP_CONFIG: InstrumentConfig = {
+  id: 'eurgbp',
+  symbol: 'EUR/GBP',
+  name: 'EURGBP',
+  aliases: ['eurgbp', 'eur/gbp'],
+  timeframes: DEFAULT_TIMEFRAMES,
+};
+
+export const GBPUSD_CONFIG: InstrumentConfig = {
+  id: 'gbpusd',
+  symbol: 'GBP/USD',
+  name: 'GBPUSD',
+  aliases: ['gbpusd', 'gbp/usd'],
+  timeframes: DEFAULT_TIMEFRAMES,
+};
+
+export const EURUSD_CONFIG: InstrumentConfig = {
+  id: 'eurusd',
+  symbol: 'EUR/USD',
+  name: 'EURUSD',
+  aliases: ['eurusd', 'eur/usd'],
   timeframes: DEFAULT_TIMEFRAMES,
 };
 
 export const INSTRUMENTS: InstrumentConfig[] = [
   XAUUSD_CONFIG,
-  NASDAQ100_CONFIG,
+  USDJPY_CONFIG,
+  EURJPY_CONFIG,
+  EURGBP_CONFIG,
+  GBPUSD_CONFIG,
+  EURUSD_CONFIG,
 ];
 
 export function findInstrumentConfig(

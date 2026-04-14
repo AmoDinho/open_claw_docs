@@ -5,7 +5,11 @@ TypeScript signal engine for Open Claw that analyzes market structure and liquid
 The project currently supports:
 
 - Gold via `XAU/USD`
-- NASDAQ 100 via a configurable Twelve Data symbol
+- `USD/JPY`
+- `EUR/JPY`
+- `EUR/GBP`
+- `GBP/USD`
+- `EUR/USD`
 - Multi-timeframe analysis on `1day`, `4h`, `1h`, and `15min`
 - Open Claw-friendly terminal output
 - JSON, JSONL, and CSV logging for replay and backtesting
@@ -34,13 +38,11 @@ cp .env.example .env
 
 ```env
 TWELVE_DATA_API_KEY=your_real_key
-NASDAQ100_SYMBOL=NDX
 ```
 
 Notes:
 
 - `TWELVE_DATA_API_KEY` is required.
-- `NASDAQ100_SYMBOL` is optional and lets you override the Twelve Data symbol used for NASDAQ 100.
 
 ## Build
 
@@ -64,16 +66,16 @@ Run Gold explicitly:
 npm run start -- --instrument gold
 ```
 
-Run NASDAQ 100:
+Run USDJPY:
 
 ```bash
-npm run start -- --instrument nasdaq100
+npm run start -- --instrument usdjpy
 ```
 
 Run a raw Twelve Data symbol directly:
 
 ```bash
-npm run start -- --symbol NDX --name "NASDAQ 100"
+npm run start -- --symbol EUR/USD --name "EURUSD"
 ```
 
 Print the verbose report and raw JSON in the terminal:
@@ -94,18 +96,23 @@ Current aliases:
 - `xau`
 - `xauusd`
 - `xau/usd`
-- `nasdaq`
-- `nasdaq100`
-- `ndx`
-- `us100`
-- `nas100`
+- `usdjpy`
+- `usd/jpy`
+- `eurjpy`
+- `eur/jpy`
+- `eurgbp`
+- `eur/gbp`
+- `gbpusd`
+- `gbp/usd`
+- `eurusd`
+- `eur/usd`
 
 Examples:
 
 ```bash
 npm run start -- --instrument gold
-npm run start -- --instrument nasdaq100
-npm run start -- --instrument ndx
+npm run start -- --instrument usdjpy
+npm run start -- --instrument eurusd
 ```
 
 ## What The App Does
@@ -147,22 +154,46 @@ npm run typecheck
 
 ## Open Claw Usage
 
-Example for Gold:
+Gold:
 
 ```bash
 openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument gold --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
-Example for NASDAQ 100:
+USDJPY:
 
 ```bash
-openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument nasdaq100 --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument usdjpy --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+```
+
+EURJPY:
+
+```bash
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument eurjpy --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+```
+
+EURGBP:
+
+```bash
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument eurgbp --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+```
+
+GBPUSD:
+
+```bash
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument gbpusd --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+```
+
+EURUSD:
+
+```bash
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --instrument eurusd --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
 If you want full control over the symbol:
 
 ```bash
-openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --symbol NDX --name 'NASDAQ 100' --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
+openclaw agent --local --deliver --message "Use the exec tool to run: cd ~/open_claw_docs && npm run start -- --symbol EUR/USD --name 'EURUSD' --json ; then synthesize the output and send the full analysis to me via Telegram" --agent main --to
 ```
 
 ## Project Structure
@@ -200,10 +231,10 @@ If you get a missing API key error:
 - make sure `TWELVE_DATA_API_KEY` is set
 - restart the command after updating `.env`
 
-If NASDAQ 100 does not resolve correctly:
+If a preset symbol does not resolve correctly with your Twelve Data account:
 
-- set `NASDAQ100_SYMBOL` in `.env`
-- or run with `--symbol <your_symbol>`
+- run with `--symbol <your_symbol>`
+- optionally add a new alias in [src/config/instruments.ts](/Users/amomoloko/github/open_claw_docs/src/config/instruments.ts)
 
 If you change code:
 

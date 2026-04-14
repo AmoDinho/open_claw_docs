@@ -66,7 +66,7 @@ function getCliOptions(): CliOptions {
 
     if (!instrument) {
       throw new Error(
-        `Unknown instrument "${requestedInstrument}". Use --instrument gold, --instrument nasdaq100, or pass --symbol directly.`,
+        `Unknown instrument "${requestedInstrument}". Use --instrument gold, usdjpy, eurjpy, eurgbp, gbpusd, eurusd, or pass --symbol directly.`,
       );
     }
 
